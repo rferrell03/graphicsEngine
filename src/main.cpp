@@ -1,3 +1,7 @@
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
+
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <iostream>
@@ -22,7 +26,7 @@ int main() {
 	////////////////////
 
 	//Creates window
-	GLFWwindow* window = glfwCreateWindow(800, 600, "triangle window", NULL, NULL);
+	GLFWwindow* window = glfwCreateWindow(800, 600, "oh my god a burger", NULL, NULL);
 	if (window == NULL)
 	{
 		std::cout << "Failed to create GLFW window" << std::endl;
@@ -47,11 +51,12 @@ int main() {
 	/////////////////
 
 	//Vertex input
-	float vertices[] = {//(pos)(color)
-	-1.0f, -1.0f, 0.0f, 1.0f, 0.0f, 0.0f,
-	 1.0f, -1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
-	 1.0f,  1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
-	-1.0f,  1.0f, 0.0f, 1.0f, 1.0f, 1.0f,
+	float vertices[] = {
+		// pos         // color           // tex coords
+		-0.8f, -0.8f, 0.0f, 0.8f, 0.0f, 0.0f, 0.0f, 0.0f, // bottom-left
+		 0.8f, -0.8f, 0.0f, 0.0f, 0.8f, 0.0f, 1.0f, 0.0f, // bottom-right
+		 0.8f,  0.8f, 0.0f, 0.0f, 0.0f, 0.8f, 1.0f, 1.0f, // top-right
+		-0.8f,  0.8f, 0.0f, 0.8f, 0.8f, 0.8f, 0.0f, 1.0f  // top-left
 	};
 
 	unsigned int indices[] = {
@@ -68,10 +73,12 @@ int main() {
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
 	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+	glEnableVertexAttribArray(2);
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
@@ -79,6 +86,29 @@ int main() {
 	//Set up shader
 
 	Shader myShader(vertexShaderSource, fragShaderSource);
+
+	//set up texture
+	unsigned int texture;
+	glGenTextures(1, &texture);
+	glBindTexture(GL_TEXTURE_2D, texture);
+	// set the texture wrapping/filtering options (on the currently bound texture object)
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	// load and generate the texture
+	int width, height, nrChannels;
+	unsigned char* data = stbi_load("textures/burger.jpg", &width, &height, &nrChannels, 0);
+	if (data)
+	{
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+		glGenerateMipmap(GL_TEXTURE_2D);
+	}
+	else
+	{
+		std::cout << "Failed to load texture" << std::endl;
+	}
+	stbi_image_free(data);
 
 	//wireframe
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -95,6 +125,8 @@ int main() {
 		
 
 		myShader.use();
+		glBindTexture(GL_TEXTURE_2D, texture);
+
 		glBindVertexArray(VAO);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 		
