@@ -11,6 +11,8 @@
 #include <iostream>
 #include "shader.h"
 #include "texture.h"
+#include "mesh.h"
+#include "VertexLayout.h"
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow* window);
 void compileShader(int shader, const char* shaderSource); 
@@ -108,29 +110,50 @@ int main() {
 		 -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
 	};
 
+	float pyramidVertices[] = {
+		// Base (two triangles)
+		-0.5f, 0.0f, -0.5f,  0.0f, 0.0f, // back left
+		 0.5f, 0.0f, -0.5f,  1.0f, 0.0f, // back right
+		 0.5f, 0.0f,  0.5f,  1.0f, 1.0f, // front right
 
-	/*unsigned int indices[] = {
-		0, 1, 2,
-		2, 3, 0
-	};*/
-	unsigned int VBO, VAO, EBO;
-	glGenVertexArrays(1, &VAO);
-	glGenBuffers(1, &VBO);
-	//glGenBuffers(1, &EBO);
-	glBindVertexArray(VAO);
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-	//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	//glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+		-0.5f, 0.0f, -0.5f,  0.0f, 0.0f, // back left
+		 0.5f, 0.0f,  0.5f,  1.0f, 1.0f, // front right
+		-0.5f, 0.0f,  0.5f,  0.0f, 1.0f, // front left
 
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
-	glEnableVertexAttribArray(1);
+		// Side 1 (back)
+		-0.5f, 0.0f, -0.5f,  0.0f, 0.0f,
+		 0.5f, 0.0f, -0.5f,  1.0f, 0.0f,
+		 0.0f, 1.0f,  0.0f,  0.5f, 1.0f,
 
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindVertexArray(0);
+		 // Side 2 (right)
+		  0.5f, 0.0f, -0.5f,  0.0f, 0.0f,
+		  0.5f, 0.0f,  0.5f,  1.0f, 0.0f,
+		  0.0f, 1.0f,  0.0f,  0.5f, 1.0f,
 
+		  // Side 3 (front)
+		   0.5f, 0.0f,  0.5f,  1.0f, 0.0f,
+		  -0.5f, 0.0f,  0.5f,  0.0f, 0.0f,
+		   0.0f, 1.0f,  0.0f,  0.5f, 1.0f,
+
+		   // Side 4 (left)
+		   -0.5f, 0.0f,  0.5f,  1.0f, 0.0f,
+		   -0.5f, 0.0f, -0.5f,  0.0f, 0.0f,
+			0.0f, 1.0f,  0.0f,  0.5f, 1.0f,
+	};
+
+
+	VertexLayout currLayout = {
+		{
+			{0, 3, 0},
+			{1, 2, sizeof(float) * 3},
+		},
+		sizeof(float) * 5
+
+	};
+
+
+	Mesh square(vertices, sizeof(vertices), currLayout);
+	Mesh pyramid(pyramidVertices, sizeof(pyramidVertices), currLayout);
 	//Set up shader
 
 	Shader myShader(vertexShaderSource, fragShaderSource);
@@ -147,7 +170,7 @@ int main() {
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
 	//gen cubes
-	int count = 40;
+	int count = 30;
 	static std::random_device rd;
 	static std::mt19937 gen(rd());
 	std::uniform_real_distribution<float> dist(0.0f, 1.0f);
@@ -198,16 +221,23 @@ int main() {
 		myShader.setMat4("projection", projection);
 
 
+		myTex2.Bind();
 		
-		glBindVertexArray(VAO);
 		for (int i = 0; i < count; ++i) {
 			glUniform1f(timeLoc, currentTime - i * 0.1f);
 			glm::mat4 model = glm::mat4(1.0f);
 			model = glm::translate(model, cubePositions[i]);
-			model = glm::scale(model, glm::vec3(0.7));
-			model = glm::rotate(model, sin(currentTime * cubeSpeeds[i]) * glm::radians(180.0f), cubeRotations[i]);
+			model = glm::scale(model, glm::vec3(1.5));
+			model = glm::rotate(model, sin(currentTime * cubeSpeeds[i]) * glm::radians(180.0f), glm::vec3(0.0,1.,0.));
 			myShader.setMat4("model", model);
-			glDrawArrays(GL_TRIANGLES, 0, 36);
+			if (i % 2 == 1) {
+				square.draw();
+			}
+
+			else {
+				
+				pyramid.draw();
+			}
 		}
 
 		
@@ -236,3 +266,5 @@ void processInput(GLFWwindow* window)
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
 }
+
+
